@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔊 Soundboard | Pre‑loaded Sounds</title>
+    <title>🔊 Soundboard & Forum</title>
     
     <!-- JSZip for ZIP uploads -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js">
@@ -72,6 +72,33 @@
             margin-top: 4px;
         }
 
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 60px;
+            padding: 4px;
+            box-shadow: var(--shadow-sm);
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 60px;
+            transition: var(--transition);
+        }
+        .tab-btn.active {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 2px 8px rgba(91,140,90,0.3);
+        }
+
         /* Status bar */
         .status {
             background: var(--surface);
@@ -104,7 +131,15 @@
             width: 0%;
         }
 
-        /* Upload Panel */
+        /* Panels (used inside tab-content) */
+        .tab-content {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 28px;
+        }
+
         .panel {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -114,6 +149,7 @@
             width: 100%;
             max-width: 640px;
         }
+
         .panel-title {
             font-size: 1.25rem;
             font-weight: 700;
@@ -263,7 +299,7 @@
             border: 1px solid var(--border);
         }
 
-        /* Grid */
+        /* Sound Grid */
         .section-header {
             font-size: 1.3rem;
             font-weight: 700;
@@ -371,6 +407,41 @@
             background: var(--surface2);
         }
 
+        /* Forum List */
+        .forum-list {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .forum-post {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .forum-post .post-user {
+            font-weight: 600;
+            color: var(--accent);
+            font-size: 0.9rem;
+        }
+        .forum-post .post-sound {
+            color: var(--text);
+            font-size: 0.95rem;
+            margin: 4px 0;
+        }
+        .forum-post .post-time {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            align-self: flex-end;
+        }
+
         .footer {
             margin-top: 32px;
             font-size: 0.8rem;
@@ -382,14 +453,21 @@
             .panel { padding: 22px 16px; }
             .input-row { flex-direction: column; }
             .emoji-input { max-width: 100% !important; }
+            .tab-btn { padding: 10px 16px; font-size: 0.9rem; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔊 Soundboard</h1>
-            <p class="tagline">Pre‑loaded sounds + your own uploads</p>
+            <h1>🔊 Soundboard & Forum</h1>
+            <p class="tagline">Pre‑loaded sounds + your uploads + request wall</p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-nav" id="tabNav">
+            <button class="tab-btn active" data-tab="soundboard">🎵 Soundboard</button>
+            <button class="tab-btn" data-tab="forum">💬 Requests Forum</button>
         </div>
 
         <div class="status" id="statusBar">Loading…</div>
@@ -397,73 +475,92 @@
             <div class="progress-fill" id="progressFill"></div>
         </div>
 
-        <!-- Upload Panel -->
-        <div class="panel">
-            <div class="panel-title">Add Sounds</div>
-            
-            <!-- ZIP Upload -->
-            <div class="upload-zone" id="zipZone">
-                <label for="zipFile">📁 Upload a ZIP folder</label>
-                <input type="file" id="zipFile" accept=".zip">
-                <div class="hint">Pack multiple MP3/WAV files into a ZIP archive</div>
-            </div>
-
-            <div class="divider">or single file</div>
-
-            <!-- Single file upload -->
-            <div class="single-upload">
-                <input type="file" id="singleFile" accept="audio/*,.mp3,.wav,.m4a">
-                <div class="input-row">
-                    <input type="text" id="memeName" placeholder="Custom name (optional)" maxlength="30">
-                    <input type="text" id="memeEmoji" class="emoji-input" maxlength="4" value="🔊">
+        <!-- Soundboard Tab Content -->
+        <div id="soundboardPanel" class="tab-content">
+            <div class="panel">
+                <div class="panel-title">Add Sounds</div>
+                
+                <!-- ZIP Upload -->
+                <div class="upload-zone" id="zipZone">
+                    <label for="zipFile">📁 Upload a ZIP folder</label>
+                    <input type="file" id="zipFile" accept=".zip">
+                    <div class="hint">Pack multiple MP3/WAV files into a ZIP archive</div>
                 </div>
-                <button class="btn" id="addSingleBtn">➕ Add Sound</button>
+
+                <div class="divider">or single file</div>
+
+                <!-- Single file upload -->
+                <div class="single-upload">
+                    <input type="file" id="singleFile" accept="audio/*,.mp3,.wav,.m4a">
+                    <div class="input-row">
+                        <input type="text" id="memeName" placeholder="Custom name (optional)" maxlength="30">
+                        <input type="text" id="memeEmoji" class="emoji-input" maxlength="4" value="🔊">
+                    </div>
+                    <button class="btn" id="addSingleBtn">➕ Add Sound</button>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="actions">
+                    <button class="btn btn-outline" id="exportBtn">📤 Export</button>
+                    <button class="btn btn-outline" id="importBtn">📥 Import</button>
+                    <button class="btn btn-outline" id="clearBtn">🗑️ Clear All</button>
+                    <button class="btn btn-outline" id="loadDefaultBtn">🔄 Load Default Sounds</button>
+                    <button class="btn btn-danger" id="resetBtn">Reset App</button>
+                </div>
+                <input type="file" id="importFile" accept=".json" style="display:none;">
+
+                <!-- Storage stats -->
+                <div class="stats">
+                    <span id="memeCount">0 sounds</span>
+                    <span id="storageUsed">0 MB used</span>
+                </div>
             </div>
 
-            <!-- Action buttons -->
-            <div class="actions">
-                <button class="btn btn-outline" id="exportBtn">📤 Export</button>
-                <button class="btn btn-outline" id="importBtn">📥 Import</button>
-                <button class="btn btn-outline" id="clearBtn">🗑️ Clear All</button>
-                <button class="btn btn-outline" id="loadDefaultBtn">🔄 Load Default Sounds</button>
-                <button class="btn btn-danger" id="resetBtn">Reset App</button>
-            </div>
-            <input type="file" id="importFile" accept=".json" style="display:none;">
-
-            <!-- Storage stats -->
-            <div class="stats">
-                <span id="memeCount">0 sounds</span>
-                <span id="storageUsed">0 MB used</span>
+            <!-- Sound Grid -->
+            <div class="section-header">Your Collection</div>
+            <div class="sound-grid" id="memeContainer">
+                <div class="empty-state">✨ Nothing here yet. Loading defaults…</div>
             </div>
         </div>
 
-        <!-- Sound Grid -->
-        <div class="section-header">Your Collection</div>
-        <div class="sound-grid" id="memeContainer">
-            <div class="empty-state">✨ Nothing here yet. Loading defaults…</div>
+        <!-- Forum Tab Content (hidden initially) -->
+        <div id="forumPanel" class="tab-content" style="display: none;">
+            <div class="panel">
+                <div class="panel-title">💬 Request a Sound</div>
+                <div class="input-row" style="margin-bottom: 12px;">
+                    <input type="text" id="forumUsername" placeholder="Your username" maxlength="20">
+                    <input type="text" id="forumSound" placeholder="What sound would you like?">
+                </div>
+                <button class="btn" id="postRequestBtn">📩 Post Request</button>
+
+                <div class="forum-list" id="forumList">
+                    <div class="empty-state" style="padding: 24px;">No requests yet. Be the first!</div>
+                </div>
+            </div>
         </div>
 
-        <div class="footer">All sounds stored locally · Default sounds from GitHub</div>
+        <div class="footer">All sounds & requests stored locally · Forum for sound ideas</div>
     </div>
 
     <script>
         (function() {
             // ----------------------------------------------
-            // ⚠️ REPLACE THIS WITH YOUR OWN RAW ZIP URL ⚠️
+            // Configuration
             // ----------------------------------------------
             const DEFAULT_ZIP_URL = 'https://raw.githubusercontent.com/Sonawanemayur-IT/MemeSoundBoard/main/memesoundboard.zip';
-            
-            // ----------------------------------------------
-            // IndexedDB setup
-            // ----------------------------------------------
-            const DB_NAME = 'SoundboardV4';
-            const STORE_NAME = 'sounds';
+            const REQUEST_EMAIL = 'your.email@example.com'; // optional fallback
+
+            const DB_NAME = 'SoundboardV5';
+            const SOUND_STORE = 'sounds';
+            const REQUEST_STORE = 'requests';
+
             let db = null;
             let memes = [];
             let currentAudio = null;
 
             const EMOJI_SET = ['🎵','🎧','🔊','🎤','💥','🎯','🔥','✨','🎶','🤘','👾','🦾','💎','🌟','🍿','🎬','🎮','🎸'];
 
+            // DOM elements (soundboard)
             const statusBar = document.getElementById('statusBar');
             const progressWrap = document.getElementById('progressWrap');
             const progressFill = document.getElementById('progressFill');
@@ -481,6 +578,32 @@
             const memeCount = document.getElementById('memeCount');
             const storageUsed = document.getElementById('storageUsed');
             const memeContainer = document.getElementById('memeContainer');
+
+            // DOM elements (forum)
+            const forumUsername = document.getElementById('forumUsername');
+            const forumSound = document.getElementById('forumSound');
+            const postRequestBtn = document.getElementById('postRequestBtn');
+            const forumList = document.getElementById('forumList');
+            const soundboardPanel = document.getElementById('soundboardPanel');
+            const forumPanel = document.getElementById('forumPanel');
+            const tabBtns = document.querySelectorAll('.tab-btn');
+
+            // Tab switching
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const tab = btn.dataset.tab;
+                    if (tab === 'soundboard') {
+                        soundboardPanel.style.display = 'flex';
+                        forumPanel.style.display = 'none';
+                    } else {
+                        soundboardPanel.style.display = 'none';
+                        forumPanel.style.display = 'flex';
+                        loadForumRequests();
+                    }
+                });
+            });
 
             function randomEmoji() {
                 return EMOJI_SET[Math.floor(Math.random() * EMOJI_SET.length)];
@@ -501,15 +624,18 @@
             }
 
             // ----------------------------------------------
-            // IndexedDB helpers
+            // IndexedDB
             // ----------------------------------------------
             function openDB() {
                 return new Promise((resolve, reject) => {
                     const req = indexedDB.open(DB_NAME, 1);
                     req.onupgradeneeded = (e) => {
                         const d = e.target.result;
-                        if (!d.objectStoreNames.contains(STORE_NAME)) {
-                            d.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                        if (!d.objectStoreNames.contains(SOUND_STORE)) {
+                            d.createObjectStore(SOUND_STORE, { keyPath: 'id' });
+                        }
+                        if (!d.objectStoreNames.contains(REQUEST_STORE)) {
+                            d.createObjectStore(REQUEST_STORE, { keyPath: 'id' });
                         }
                     };
                     req.onsuccess = (e) => { db = e.target.result; resolve(db); };
@@ -517,15 +643,15 @@
                 });
             }
 
+            // Sound functions
             async function loadAllSounds() {
                 await openDB();
-                const tx = db.transaction(STORE_NAME, 'readonly');
-                const req = tx.objectStore(STORE_NAME).getAll();
+                const tx = db.transaction(SOUND_STORE, 'readonly');
+                const req = tx.objectStore(SOUND_STORE).getAll();
                 req.onsuccess = () => {
                     memes = req.result;
                     renderGrid();
                     updateStats();
-                    // If empty, automatically load default ZIP
                     if (memes.length === 0) {
                         statusBar.textContent = 'No sounds found. Loading defaults…';
                         loadDefaultSounds(true);
@@ -537,35 +663,32 @@
 
             function saveSound(soundObj) {
                 return new Promise((resolve, reject) => {
-                    const tx = db.transaction(STORE_NAME, 'readwrite');
-                    tx.objectStore(STORE_NAME).add(soundObj);
-                    tx.oncomplete = () => {
-                        memes.push(soundObj);
-                        resolve();
-                    };
+                    const tx = db.transaction(SOUND_STORE, 'readwrite');
+                    tx.objectStore(SOUND_STORE).add(soundObj);
+                    tx.oncomplete = () => { memes.push(soundObj); resolve(); };
                     tx.onerror = () => reject(tx.error);
                 });
             }
 
             function deleteSound(id) {
                 return new Promise((resolve) => {
-                    const tx = db.transaction(STORE_NAME, 'readwrite');
-                    tx.objectStore(STORE_NAME).delete(id);
+                    const tx = db.transaction(SOUND_STORE, 'readwrite');
+                    tx.objectStore(SOUND_STORE).delete(id);
                     tx.oncomplete = () => resolve();
                 });
             }
 
             function clearAllSounds() {
                 return new Promise((resolve) => {
-                    const tx = db.transaction(STORE_NAME, 'readwrite');
-                    tx.objectStore(STORE_NAME).clear();
+                    const tx = db.transaction(SOUND_STORE, 'readwrite');
+                    tx.objectStore(SOUND_STORE).clear();
                     tx.oncomplete = () => resolve();
                 });
             }
 
             async function getStorageSize() {
-                const tx = db.transaction(STORE_NAME, 'readonly');
-                const req = tx.objectStore(STORE_NAME).getAll();
+                const tx = db.transaction(SOUND_STORE, 'readonly');
+                const req = tx.objectStore(SOUND_STORE).getAll();
                 return new Promise((resolve) => {
                     req.onsuccess = () => {
                         let total = 0;
@@ -581,9 +704,7 @@
                 storageUsed.textContent = `${(bytes / 1024 / 1024).toFixed(1)} MB used`;
             }
 
-            // ----------------------------------------------
-            // Process ZIP from file or blob
-            // ----------------------------------------------
+            // Process ZIP
             async function processZipBlob(zipBlob, clearFirst = false) {
                 if (clearFirst) {
                     await clearAllSounds();
@@ -591,7 +712,6 @@
                 }
                 showProgress(true);
                 updateProgress(0);
-                
                 try {
                     const zip = await JSZip.loadAsync(zipBlob);
                     const audioFiles = [];
@@ -603,13 +723,11 @@
                             }
                         }
                     });
-
                     if (!audioFiles.length) {
                         statusBar.textContent = 'No audio files found in ZIP';
                         showProgress(false);
                         return;
                     }
-
                     let added = 0;
                     for (let i = 0; i < audioFiles.length; i++) {
                         const af = audioFiles[i];
@@ -625,11 +743,8 @@
                             };
                             await saveSound(sound);
                             added++;
-                        } catch (e) {
-                            console.warn('Skipped:', af.name);
-                        }
+                        } catch (e) { console.warn('Skipped:', af.name); }
                     }
-
                     updateProgress(100);
                     renderGrid();
                     updateStats();
@@ -641,54 +756,31 @@
                 }
             }
 
-            // ----------------------------------------------
-            // Load default ZIP from GitHub
-            // ----------------------------------------------
             async function loadDefaultSounds(automatic = false) {
-                if (!automatic) {
-                    // Manual button click: clear existing first
-                    if (!confirm('Replace current sounds with the default collection?')) return;
-                }
-                statusBar.textContent = automatic ? 'Fetching default sounds from GitHub…' : 'Loading default sounds…';
+                if (!automatic && !confirm('Replace current sounds with the default collection?')) return;
+                statusBar.textContent = automatic ? 'Fetching default sounds…' : 'Loading default sounds…';
                 showProgress(true);
                 updateProgress(10);
-                
                 try {
                     const response = await fetch(DEFAULT_ZIP_URL);
-                    if (!response.ok) throw new Error('Failed to fetch ZIP');
+                    if (!response.ok) throw new Error('Failed to fetch');
                     const zipBlob = await response.blob();
-                    await processZipBlob(zipBlob, true); // clear first
+                    await processZipBlob(zipBlob, true);
                 } catch (error) {
-                    statusBar.textContent = 'Could not load default sounds. Check the URL.';
+                    statusBar.textContent = 'Could not load default sounds.';
                     showProgress(false);
-                    console.error(error);
                 }
             }
 
-            // ----------------------------------------------
-            // Add single sound / manual ZIP
-            // ----------------------------------------------
             async function addSingleSound() {
                 const file = singleFile.files[0];
-                if (!file) {
-                    statusBar.textContent = 'Select an audio file first';
-                    return;
-                }
+                if (!file) { statusBar.textContent = 'Select a file first'; return; }
                 let name = memeName.value.trim() || cleanName(file.name);
                 let emoji = memeEmoji.value.trim() || randomEmoji();
-
                 addSingleBtn.disabled = true;
                 addSingleBtn.textContent = 'Processing...';
                 statusBar.textContent = `Adding ${file.name}...`;
-
-                const sound = {
-                    id: Date.now() + Math.random(),
-                    name: name,
-                    emoji: emoji,
-                    blob: file,
-                    fileName: file.name,
-                };
-
+                const sound = { id: Date.now() + Math.random(), name, emoji, blob: file, fileName: file.name };
                 try {
                     await saveSound(sound);
                     renderGrid();
@@ -707,13 +799,10 @@
             async function manualZipUpload(file) {
                 if (!file) return;
                 statusBar.textContent = 'Processing uploaded ZIP…';
-                await processZipBlob(file, false); // merge
+                await processZipBlob(file, false);
                 zipFile.value = '';
             }
 
-            // ----------------------------------------------
-            // Playback
-            // ----------------------------------------------
             function playSound(sound, cardElement) {
                 if (currentAudio) {
                     currentAudio.pause();
@@ -721,17 +810,11 @@
                     currentAudio = null;
                 }
                 document.querySelectorAll('.sound-card').forEach(c => c.classList.remove('playing'));
-
-                if (!sound.blob) {
-                    statusBar.textContent = 'No audio data';
-                    return;
-                }
-
+                if (!sound.blob) { statusBar.textContent = 'No audio data'; return; }
                 const url = URL.createObjectURL(sound.blob);
                 const audio = new Audio(url);
                 audio.volume = 1.0;
                 currentAudio = audio;
-
                 audio.addEventListener('playing', () => {
                     statusBar.textContent = `Playing: ${sound.name}`;
                     if (cardElement) cardElement.classList.add('playing');
@@ -747,22 +830,17 @@
                     if (cardElement) cardElement.classList.remove('playing');
                     URL.revokeObjectURL(url);
                 });
-
                 audio.play().catch(err => {
                     statusBar.textContent = 'Click again to play';
                     if (cardElement) cardElement.classList.remove('playing');
                 });
             }
 
-            // ----------------------------------------------
-            // Render grid
-            // ----------------------------------------------
             function renderGrid() {
                 if (!memes.length) {
                     memeContainer.innerHTML = '<div class="empty-state">✨ Nothing here yet. Load defaults or upload.</div>';
                     return;
                 }
-
                 let html = '';
                 memes.forEach(s => {
                     html += `
@@ -775,7 +853,6 @@
                         </div>`;
                 });
                 memeContainer.innerHTML = html;
-
                 document.querySelectorAll('.sound-card').forEach(card => {
                     card.addEventListener('click', () => {
                         const id = +card.dataset.id;
@@ -791,22 +868,13 @@
                 memes = memes.filter(m => m.id !== id);
                 renderGrid();
                 updateStats();
-                if (currentAudio) {
-                    currentAudio.pause();
-                    URL.revokeObjectURL(currentAudio.src);
-                    currentAudio = null;
-                }
+                if (currentAudio) { currentAudio.pause(); URL.revokeObjectURL(currentAudio.src); currentAudio = null; }
                 statusBar.textContent = 'Sound deleted';
             };
 
-            // ----------------------------------------------
-            // Export / Import
-            // ----------------------------------------------
+            // Export/Import/Clear/Reset
             async function exportCollection() {
-                if (!memes.length) {
-                    statusBar.textContent = 'Nothing to export';
-                    return;
-                }
+                if (!memes.length) { statusBar.textContent = 'Nothing to export'; return; }
                 const sounds = [];
                 for (const s of memes) {
                     const base64 = await new Promise(resolve => {
@@ -834,31 +902,20 @@
                     const text = await file.text();
                     const data = JSON.parse(text);
                     if (!data.sounds) throw new Error('Invalid format');
-
-                    if (confirm(`Found ${data.sounds.length} sounds. Merge with existing?`)) {
-                        // merge
-                    } else {
+                    if (confirm(`Found ${data.sounds.length} sounds. Merge with existing?`)) {} else {
                         await clearAllSounds();
                         memes = [];
                     }
-
                     for (let i = 0; i < data.sounds.length; i++) {
                         const s = data.sounds[i];
                         updateProgress(Math.floor((i / data.sounds.length) * 100));
                         const resp = await fetch(s.data);
                         const blob = await resp.blob();
-                        await saveSound({
-                            id: Date.now() + Math.random() + i,
-                            name: s.name,
-                            emoji: s.emoji,
-                            blob: blob,
-                            fileName: s.fileName || 'imported'
-                        });
+                        await saveSound({ id: Date.now() + Math.random() + i, name: s.name, emoji: s.emoji, blob: blob, fileName: s.fileName || 'imported' });
                     }
-
                     updateProgress(100);
-                    const tx = db.transaction(STORE_NAME, 'readonly');
-                    const req = tx.objectStore(STORE_NAME).getAll();
+                    const tx = db.transaction(SOUND_STORE, 'readonly');
+                    const req = tx.objectStore(SOUND_STORE).getAll();
                     req.onsuccess = () => {
                         memes = req.result;
                         renderGrid();
@@ -874,49 +931,109 @@
             }
 
             async function clearAll() {
-                if (!confirm('Delete ALL sounds? This cannot be undone.')) return;
+                if (!confirm('Delete ALL sounds?')) return;
                 await clearAllSounds();
                 memes = [];
                 renderGrid();
                 updateStats();
-                if (currentAudio) {
-                    currentAudio.pause();
-                    URL.revokeObjectURL(currentAudio.src);
-                    currentAudio = null;
-                }
+                if (currentAudio) { currentAudio.pause(); URL.revokeObjectURL(currentAudio.src); currentAudio = null; }
                 statusBar.textContent = 'All sounds cleared';
             }
 
             function resetApp() {
                 if (!confirm('Reset the app? All data will be lost.')) return;
-                indexedDB.deleteDatabase(DB_NAME).onsuccess = () => {
-                    window.location.reload();
+                indexedDB.deleteDatabase(DB_NAME).onsuccess = () => window.location.reload();
+            }
+
+            // ----------------------------------------------
+            // Forum functions
+            // ----------------------------------------------
+            async function loadForumRequests() {
+                const requests = await getAllRequests();
+                renderForumList(requests);
+            }
+
+            function getAllRequests() {
+                return new Promise((resolve) => {
+                    const tx = db.transaction(REQUEST_STORE, 'readonly');
+                    const store = tx.objectStore(REQUEST_STORE);
+                    const req = store.getAll();
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => resolve([]);
+                });
+            }
+
+            function saveRequest(request) {
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(REQUEST_STORE, 'readwrite');
+                    tx.objectStore(REQUEST_STORE).add(request);
+                    tx.oncomplete = resolve;
+                    tx.onerror = reject;
+                });
+            }
+
+            function renderForumList(requests) {
+                if (!requests.length) {
+                    forumList.innerHTML = '<div class="empty-state" style="padding:24px;">No requests yet. Be the first!</div>';
+                    return;
+                }
+                requests.sort((a, b) => b.timestamp - a.timestamp);
+                let html = '';
+                requests.forEach(r => {
+                    const date = new Date(r.timestamp).toLocaleString();
+                    html += `
+                        <div class="forum-post">
+                            <span class="post-user">${escapeHTML(r.username)}</span>
+                            <span class="post-sound">${escapeHTML(r.sound)}</span>
+                            <span class="post-time">${date}</span>
+                        </div>`;
+                });
+                forumList.innerHTML = html;
+            }
+
+            function escapeHTML(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            async function postRequest() {
+                const username = forumUsername.value.trim();
+                const sound = forumSound.value.trim();
+                if (!username) { alert('Please enter a username.'); return; }
+                if (!sound) { alert('Please enter a sound name.'); return; }
+                const request = {
+                    id: Date.now() + Math.random(),
+                    username,
+                    sound,
+                    timestamp: Date.now()
                 };
+                await saveRequest(request);
+                forumUsername.value = '';
+                forumSound.value = '';
+                await loadForumRequests();
+                statusBar.textContent = 'Request posted!';
             }
 
             // ----------------------------------------------
             // Event listeners
             // ----------------------------------------------
-            zipFile.addEventListener('change', e => {
-                if (e.target.files[0]) manualZipUpload(e.target.files[0]);
-            });
-
+            zipFile.addEventListener('change', e => { if (e.target.files[0]) manualZipUpload(e.target.files[0]); });
             addSingleBtn.addEventListener('click', addSingleSound);
             exportBtn.addEventListener('click', exportCollection);
             importBtn.addEventListener('click', () => importFile.click());
-            importFile.addEventListener('change', e => {
-                if (e.target.files[0]) importCollection(e.target.files[0]);
-            });
+            importFile.addEventListener('change', e => { if (e.target.files[0]) importCollection(e.target.files[0]); });
             clearBtn.addEventListener('click', clearAll);
             loadDefaultBtn.addEventListener('click', () => loadDefaultSounds(false));
             resetBtn.addEventListener('click', resetApp);
+            postRequestBtn.addEventListener('click', postRequest);
 
-            memeName.addEventListener('keypress', e => {
-                if (e.key === 'Enter') addSingleSound();
+            memeName.addEventListener('keypress', e => { if (e.key === 'Enter') addSingleSound(); });
+
+            // Start
+            openDB().then(() => {
+                loadAllSounds();
             });
-
-            // Start everything
-            loadAllSounds();
         })();
     </script>
 </body>
